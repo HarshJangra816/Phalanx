@@ -139,7 +139,8 @@ Repo (50 files)
 ```
 phalanx/
 ├── pyproject.toml
-├── README.md · PRD.md · ARCHITECTURE.md · ROADMAP.md · SAFETY.md · MEMORY.md
+├── docs
+│   └── README.md · PRD.md · ARCHITECTURE.md · ROADMAP.md · SAFETY.md · MEMORY.md
 ├── src/phalanx/
 │   ├── cli.py
 │   ├── agent/          # state machine, tool loop, model router, budget, audit

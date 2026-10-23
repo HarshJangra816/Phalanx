@@ -6,13 +6,14 @@
 ---
 
 ## Phase 0 — Foundation ✅ target: scaffold + working agent loop
-- [ ] Python package scaffold (`pyproject.toml`, `src/phalanx/`), CLI skeleton
-- [ ] Docker sandbox lifecycle: create → run → destroy, no-outbound-network, resource caps
-- [ ] Agent tool-loop with tools: `read_file`, `edit_file`, `run_scan`, `run_exploit`, `run_tests`
-- [ ] Tiered model config (provider-agnostic, Claude default: Haiku triage / Sonnet fix)
-- [ ] Audit logger (append-only JSONL) + token budget meter
-- [ ] Docs: README, PRD, ARCHITECTURE, ROADMAP, SAFETY, MEMORY
+- [x] Python package scaffold (`pyproject.toml`, `src/phalanx/`), CLI skeleton (`ask|scan|fix|sandbox|doctor`)
+- [x] Docker sandbox lifecycle: create → run → destroy, no-outbound-network, resource caps
+- [x] Agent tool-loop with tools: `read_file`, `edit_file`, `run_scan`, `run_exploit`, `run_tests`
+- [x] Tiered model config (provider-agnostic, Claude default: Haiku triage / Sonnet fix)
+- [x] Audit logger (append-only JSONL) + token budget meter
+- [x] Docs: README, PRD, ARCHITECTURE, ROADMAP, SAFETY, MEMORY
 **Exit test:** agent can read a PHP file in the sandbox and answer questions about it; sandbox proves network-isolated.
+**Status:** code complete; 43 unit tests pass (8 sandbox tests skip without Docker). Sandbox runtime proof pending a Docker host (`phalanx sandbox check --project lab`).
 
 ## Phase 1 — FIND
 - [ ] Curated Semgrep PHP rules for SQLi, XSS, CMDi, upload, LFI

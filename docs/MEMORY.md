@@ -41,10 +41,19 @@ FIND (Semgrep + tree-sitter, free) → PROVE (sandboxed safe PoC → CONFIRMED)
 
 ## Current status
 
-- **Current phase:** Phase 0 — Foundation
-- **Phase 0 progress:** docs created (README, PRD, ARCHITECTURE, ROADMAP, SAFETY, MEMORY); scaffold + sandbox + agent loop pending
-- **Last completed phase:** none yet
-- **Next action:** build the Python package scaffold + Docker sandbox + agent tool-loop
+- **Current phase:** Phase 0 — Foundation (code complete, exit test partially verified)
+- **Phase 0 progress:** scaffold + CLI + sandbox + agent loop + budget/audit all built (43 tests green, lint clean). Agent loop verified live offline (mock provider); sandbox runtime proof pending a Docker host — this machine has no Docker.
+- **Last completed phase:** none yet (Phase 0 awaiting Docker-host exit test)
+- **Next action:** (1) on a Docker host: `pip install -e ".[sandbox]"` then `phalanx sandbox check --project lab` to prove network isolation and tag `phase-0-complete`; (2) start Phase 1 — curated Semgrep PHP rules in `rules/`
+
+### Phase 0 build notes (2026-10-23)
+
+- Stdlib-only core: no required runtime deps. Extras: `[sandbox]` (docker SDK), `[dev]` (pytest, ruff).
+- LLM providers (Anthropic/OpenAI) implemented over stdlib HTTP in `src/phalanx/agent/router.py`; no API key → automatic offline `mock` provider fallback (loop stays runnable).
+- Docs moved to `docs/` (README stays at root); `.gitignore` root-anchored `/sandbox/` so `src/phalanx/sandbox/` package isn't ignored.
+- Audit logs: `.phalanx/audit-<run_id>.jsonl`, append-only.
+- Lab vulnerable app: `lab/public/index.php` (all 5 vuln classes) + `lab/Dockerfile` (php:8.2-cli-alpine + phpunit).
+- CLI: `phalanx ask <file> "<question>"` (agent Q&A) · `phalanx scan <path>` · `phalanx sandbox check` · `phalanx doctor`.
 
 ## Success metrics targets
 
