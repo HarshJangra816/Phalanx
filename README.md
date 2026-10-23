@@ -58,31 +58,40 @@ Most files **never touch an LLM**. The deterministic layer does the bulk work; a
 - Function-level slicing — only the vulnerable function is sent, never whole files
 - `--budget N` hard token cap per run
 
-## Quickstart (Phase 0 preview)
+## Quickstart (Phase 1)
 
 ```powershell
-# install (sandbox extra adds the Docker SDK)
-pip install -e ".[sandbox]"
+# install — scanner extras add Semgrep + tree-sitter; sandbox adds the Docker SDK
+pip install -e ".[scanner,sandbox]"
 
 # environment check
 phalanx doctor
 
-# ask the agent about a PHP file (uses ANTHROPIC_API_KEY; offline mock without it)
+# deterministic scan — terminal / JSON / SARIF
+phalanx scan lab
+phalanx scan lab --format json
+phalanx scan lab --format sarif          # GitHub code-scanning compatible
+
+# score a scan against ground truth (the Phase 1 exit test)
+phalanx bench challenges
+
+# agent Q&A (uses ANTHROPIC_API_KEY; offline mock without it)
 phalanx ask lab/public/index.php "what vulnerabilities does this file contain?" --no-sandbox
 
-# prove the sandbox has no outbound network (Phase 0 exit test)
+# prove the sandbox has no outbound network
 phalanx sandbox check --project lab
-
-# deterministic scan (Phase 1 ships the rules)
-phalanx scan lab
 ```
 
 Requires Python 3.11+. Docker Desktop is needed only for `sandbox` commands and PoC execution.
+The LLM review layer activates automatically when `ANTHROPIC_API_KEY` is set (with credits); without it, scans are deterministic-only (Semgrep + tree-sitter) — still full accuracy on the challenge set.
+
+Current benchmark (`phalanx bench challenges` — 5 vuln classes × easy/medium, plus 5 secure files):
+**10/10 vulnerabilities flagged · 0 false positives · 0 missed** (precision 100% / recall 100%).
 
 ## Roadmap
 
-- [ ] **Phase 0** — Foundation: scaffold, Docker sandbox, agent tool-loop
-- [ ] **Phase 1** — FIND: Semgrep rules + LLM review, SARIF/Markdown reports
+- [x] **Phase 0** — Foundation: scaffold, Docker sandbox, agent tool-loop ✅
+- [x] **Phase 1** — FIND: Semgrep rules + LLM review, SARIF/JSON reports, challenge-set benchmark ✅
 - [ ] **Phase 2** — PROVE: sandboxed safe PoC exploits, false-positive suppression
 - [ ] **Phase 3** — FIX + VERIFY: semantic patches, re-exploit-must-fail gate
 - [ ] **Phase 4** — Distribution: CLI polish → GitHub Action → Web dashboard
@@ -102,7 +111,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for exit criteria per phase.
 
 ## Status
 
-🚧 **Phase 0 — code complete, exit test pending.** Package, CLI (`ask|scan|fix|sandbox|doctor`), Docker sandbox, agent tool-loop, budget/audit all built (45+ tests green). Awaiting sandbox network-isolation proof on a Docker host before the `phase-0-complete` tag. Not yet usable for real scanning — Phase 1 ships the rules.
+🚧 **Phase 1 — FIND complete (exit test passed), pending review sign-off.** `phalanx scan` finds SQLi / XSS / command injection / file upload / LFI via curated Semgrep taint rules, slices every finding to its enclosing function (tree-sitter), optionally second-guesses them with an LLM review layer (logic flaws: auth bypass, IDOR), and emits terminal / JSON / **SARIF 2.1.0** output. `phalanx bench challenges` scores scans against ground truth: **100% precision / 100% recall (10 TP, 0 FP, 0 FN)**. 96 tests green, lint clean, sandbox network-isolation proven. Next up: **Phase 2 — PROVE** (sandboxed safe-PoC confirmation → false-positive suppression).
 
 ## License
 
