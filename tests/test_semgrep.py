@@ -15,7 +15,8 @@ AVAILABLE, _REASON = semgrep_available()
 
 VULN_PHP = """\
 <?php
-function get_user($db, $name) {
+function get_user($db) {
+    $name = $_GET['name'];
     $q = "SELECT * FROM users WHERE name = '" . $name . "'";
     return mysqli_query($db, $q);
 }

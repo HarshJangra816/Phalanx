@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -38,9 +40,16 @@ class ScanResult:
 
 def semgrep_available() -> tuple[bool, str]:
     path = shutil.which("semgrep")
-    if not path:
-        return False, "semgrep binary not on PATH (pip install semgrep)"
-    return True, path
+    if path:
+        return True, path
+    # venv fallback: scripts dir next to the running interpreter
+    # (PATH is often unmodified when invoking python by explicit path)
+    scripts = Path(sys.executable).resolve().parent
+    for name in ("semgrep", "semgrep.exe", "semgrep.cmd"):
+        candidate = scripts / name
+        if candidate.exists():
+            return True, str(candidate)
+    return False, "semgrep binary not on PATH (pip install semgrep)"
 
 
 def _classify(rule_id: str) -> VulnClass:
@@ -56,9 +65,35 @@ def _default_rules_dir() -> Path:
     return Path(__file__).resolve().parents[3] / "rules"
 
 
+_SPAWN_FAILURE_SIGNATURES = (
+    "failed to obtain target files from semgrep-core",
+    "paging file is too small",
+    "winerror 1455",
+    "reduce the number of jobs",
+    "out of memory",
+    "not enough memory",
+)
+
+
+def _run_semgrep_once(cmd: list[str], timeout: int) -> tuple[int | None, str, str, str]:
+    """Single attempt. Returns (returncode|None, stdout, stderr, hard_error)."""
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                              check=False)
+    except subprocess.TimeoutExpired:
+        return None, "", "", f"semgrep timed out after {timeout}s"
+    except OSError as exc:  # e.g. WinError 1455: pagefile too small to spawn
+        return None, "", "", str(exc)
+    return proc.returncode, proc.stdout, proc.stderr, ""
+
+
 def run_semgrep(target: Path, rules_dir: Path | None = None,
-                timeout: int = 300) -> ScanResult:
-    """Run semgrep against `target` with Phalanx PHP rules; normalize findings."""
+                timeout: int = 300, retries: int = 2) -> ScanResult:
+    """Run semgrep against `target` with Phalanx PHP rules; normalize findings.
+
+    Transient Windows spawn failures (WinError 1455 / semgrep-core target
+    enumeration under memory pressure) are retried with backoff.
+    """
     available, info = semgrep_available()
     if not available:
         return ScanResult(error=info)
@@ -68,24 +103,32 @@ def run_semgrep(target: Path, rules_dir: Path | None = None,
     if not rule_files:
         return ScanResult(error=f"no semgrep rules found in {rules_dir} (Phase 1 ships them)")
 
-    cmd = ["semgrep", "scan", "--json", "--metrics=off", "--quiet",
-           "--timeout", "60"]
+    cmd = [info, "scan", "--json", "--metrics=off", "--quiet",
+           "--timeout", "60", "--jobs", "1"]
     for rf in rule_files:
         cmd += ["--config", str(rf)]
     cmd.append(str(target))
 
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
-                              check=False)
-    except subprocess.TimeoutExpired:
-        return ScanResult(error=f"semgrep timed out after {timeout}s")
-    except OSError as exc:
-        return ScanResult(error=f"failed to run semgrep: {exc}")
+    returncode, stdout, stderr, hard_error = None, "", "", ""
+    for attempt in range(retries + 1):
+        returncode, stdout, stderr, hard_error = _run_semgrep_once(cmd, timeout)
+        transient = (
+            returncode is None
+            or (returncode == 2 and any(
+                sig in (stdout + stderr).lower()
+                for sig in _SPAWN_FAILURE_SIGNATURES))
+        )
+        if not transient or attempt == retries:
+            break
+        time.sleep(0.5 * (2 ** attempt))
+
+    if returncode is None:
+        return ScanResult(error=hard_error)
 
     try:
-        payload = json.loads(proc.stdout or "{}")
+        payload = json.loads(stdout or "{}")
     except json.JSONDecodeError:
-        return ScanResult(error=f"semgrep produced invalid JSON: {proc.stdout[:500]}")
+        return ScanResult(error=f"semgrep produced invalid JSON: {stdout[:500]}")
 
     findings: list[Finding] = []
     for res in payload.get("results", []):
@@ -102,10 +145,13 @@ def run_semgrep(target: Path, rules_dir: Path | None = None,
         ))
 
     error = ""
-    if proc.returncode not in (0, 1) and not findings:  # 1 = findings present
+    if returncode not in (0, 1) and not findings:  # 1 = findings present
         semgrep_errors = payload.get("errors", [])
-        detail = (proc.stderr or str(semgrep_errors))[:500]
-        error = f"semgrep exit {proc.returncode}: {detail}"
+        detail = (stderr or str(semgrep_errors) or hard_error)[:500]
+        error = (f"semgrep exit {returncode}: {detail}"
+                 if detail else
+                 f"semgrep exit {returncode} (no details — often low system "
+                 "memory/pagefile; see docs/MEMORY.md)")
 
     return ScanResult(findings=findings, error=error,
                       rules_used=[str(r) for r in rule_files],

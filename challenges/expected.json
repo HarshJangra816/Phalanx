@@ -1,0 +1,21 @@
+{
+  "vulnerabilities": [
+    { "file": "sqli/easy.php", "class": "sqli", "line": 7 },
+    { "file": "sqli/medium.php", "class": "sqli", "line": 9 },
+    { "file": "xss/easy.php", "class": "xss", "line": 5 },
+    { "file": "xss/medium.php", "class": "xss", "line": 8 },
+    { "file": "cmdi/easy.php", "class": "cmdi", "line": 6 },
+    { "file": "cmdi/medium.php", "class": "cmdi", "line": 8 },
+    { "file": "upload/easy.php", "class": "upload", "line": 6 },
+    { "file": "upload/medium.php", "class": "upload", "line": 8 },
+    { "file": "lfi/easy.php", "class": "lfi", "line": 5 },
+    { "file": "lfi/medium.php", "class": "lfi", "line": 8 }
+  ],
+  "clean_files": [
+    "sqli/clean.php",
+    "xss/clean.php",
+    "cmdi/clean.php",
+    "upload/clean.php",
+    "lfi/clean.php"
+  ]
+}

@@ -28,7 +28,7 @@ from phalanx.output.terminal import (
     render_network_check,
 )
 from phalanx.sandbox.docker_sandbox import docker_available
-from phalanx.scanner.semgrep import run_semgrep, semgrep_available
+from phalanx.scanner.semgrep import semgrep_available
 
 
 def _warn(msg: str) -> None:
@@ -118,21 +118,82 @@ def cmd_scan(args: argparse.Namespace) -> int:
         print(f"error: path not found: {target}", file=sys.stderr)
         return 2
 
+    from phalanx.scanner.pipeline import run_find
+
     with AuditLogger(cfg.audit_dir) as audit:
-        audit.log("scan_start", target=str(target))
-        result = run_semgrep(target)
-        audit.log("scan_end", findings=len(result.findings), error=result.error)
+        budget = TokenBudget(cfg.budget.max_tokens)
+        client = build_client(cfg.llm, stage="triage", warn=_warn)
+        audit.log("scan_start", target=str(target), format=args.format,
+                  llm=not args.no_llm)
+        result = run_find(target, client=client, budget=budget, audit=audit,
+                          use_llm=not args.no_llm)
 
     if not result.ok:
         print(f"error: {result.error}", file=sys.stderr)
         return 1
 
     if args.format == "json":
-        print(json.dumps([f.to_dict() for f in result.findings], indent=2))
+        print(json.dumps({
+            "findings": [f.to_dict() for f in result.findings],
+            "summary": {
+                "count": len(result.findings),
+                "files_scanned": result.scan.files_scanned,
+                "llm_enabled": result.llm_enabled,
+                "tokens": result.tokens.total,
+                "duration_ms": result.duration_ms,
+                "llm_errors": result.llm_errors,
+            },
+        }, indent=2))
+    elif args.format == "sarif":
+        from phalanx.output.sarif import to_sarif
+
+        print(json.dumps(to_sarif(result.findings, tool_version=__version__,
+                                  root=target if target.is_dir() else target.parent),
+                         indent=2))
     else:
         print(render_findings(result.findings))
+        llm_note = (f" · llm: {result.llm_findings} hypothesis(es)"
+                    if result.llm_enabled else " · llm: off")
+        if result.llm_errors:
+            llm_note += f" ({len(result.llm_errors)} error(s))"
         print(f"\n{len(result.findings)} finding(s) · "
-              f"{result.files_scanned} file(s) scanned · semgrep")
+              f"{result.scan.files_scanned} file(s) · "
+              f"{result.tokens.total} token(s) · "
+              f"{result.duration_ms / 1000:.1f}s{llm_note}")
+        for err in result.llm_errors:
+            print(f"  llm: {err}", file=sys.stderr)
+    return 0
+
+
+def cmd_bench(args: argparse.Namespace) -> int:
+    cfg = _load(args)
+    directory = Path(args.directory).resolve()
+    if not directory.is_dir():
+        print(f"error: not a directory: {directory}", file=sys.stderr)
+        return 2
+
+    from phalanx.scanner.bench import format_table, run_bench
+
+    with AuditLogger(cfg.audit_dir) as audit:
+        budget = TokenBudget(cfg.budget.max_tokens)
+        client = build_client(cfg.llm, stage="triage", warn=_warn)
+        try:
+            rows, raw = run_bench(directory, client=client, budget=budget,
+                                  audit=audit, use_llm=not args.no_llm)
+        except FileNotFoundError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+
+    if args.format == "json":
+        print(json.dumps(raw, indent=2))
+    else:
+        print(f"challenge set: {directory}")
+        print(format_table(rows))
+        if raw["llm_errors"]:
+            print("\nllm notes:")
+            for e in raw["llm_errors"]:
+                print(f"  - {e}")
+    # exit 0 even with misses: the report is the product; CI gates come later
     return 0
 
 
@@ -214,10 +275,22 @@ def build_parser() -> argparse.ArgumentParser:
                        help="read files from host instead of sandbox")
     p_ask.set_defaults(func=cmd_ask)
 
-    p_scan = sub.add_parser("scan", help="deterministic static scan (Semgrep)")
+    p_scan = sub.add_parser("scan", help="FIND stage: Semgrep + optional LLM review")
     p_scan.add_argument("path", help="file or directory to scan")
-    p_scan.add_argument("--format", choices=["terminal", "json"], default="terminal")
+    p_scan.add_argument("--format", choices=["terminal", "json", "sarif"],
+                        default="terminal")
+    p_scan.add_argument("--no-llm", action="store_true",
+                        help="deterministic scan only (no LLM review layer)")
+    p_scan.add_argument("--budget", type=int, help="hard token cap")
     p_scan.set_defaults(func=cmd_scan)
+
+    p_bench = sub.add_parser("bench", help="score a challenge set vs ground truth")
+    p_bench.add_argument("directory", help="challenge dir containing expected.json")
+    p_bench.add_argument("--format", choices=["table", "json"], default="table")
+    p_bench.add_argument("--no-llm", action="store_true",
+                        help="baseline only (semgrep-only variant)")
+    p_bench.add_argument("--budget", type=int, help="hard token cap")
+    p_bench.set_defaults(func=cmd_bench)
 
     p_fix = sub.add_parser("fix", help="generate and verify fixes (Phase 3)")
     p_fix.add_argument("path", help="project directory")

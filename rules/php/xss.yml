@@ -1,0 +1,31 @@
+rules:
+  - id: php.xss.echo-user-input
+    mode: taint
+    message: >
+      Unescaped user input is echoed/printed to the response. Escape with
+      htmlspecialchars($x, ENT_QUOTES, 'UTF-8') (or a template engine with
+      auto-escaping) before output.
+    languages: [php]
+    severity: WARNING
+    metadata:
+      vuln_class: xss
+      cwe: "CWE-79: Cross-site Scripting"
+      owasp: A03:2021 - Injection
+      confidence: HIGH
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_SERVER['QUERY_STRING']
+      - pattern: $_SERVER['HTTP_REFERER']
+    pattern-sinks:
+      - pattern-either:
+          - pattern: echo $VALUE;
+          - pattern: print $VALUE;
+          - pattern: print($VALUE)
+          - pattern: printf(...)
+    pattern-sanitizers:
+      - pattern: htmlspecialchars(...)
+      - pattern: htmlentities(...)
+      - pattern: strip_tags(...)

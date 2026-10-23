@@ -13,15 +13,16 @@
 - [x] Audit logger (append-only JSONL) + token budget meter
 - [x] Docs: README, PRD, ARCHITECTURE, ROADMAP, SAFETY, MEMORY
 **Exit test:** agent can read a PHP file in the sandbox and answer questions about it; sandbox proves network-isolated.
-**Status: EXIT TEST PASSED (2026-10-23).** `phalanx sandbox check --project lab` → ✔ SANDBOX ISOLATED; agent Q&A ran with full sandbox lifecycle (create → run → destroy, audit trail verified); 52/53 tests pass (1 skip = semgrep binary, ships Phase 1). Live Claude call pending Anthropic account credits. Awaiting sign-off to tag `phase-0-complete`.
+**Status: EXIT TEST PASSED (2026-10-23) — tagged `phase-0-complete`, pushed.** `phalanx sandbox check --project lab` → ✔ SANDBOX ISOLATED; agent Q&A ran with full sandbox lifecycle (create → run → destroy, audit trail verified). Live Claude call pending Anthropic account credits.
 
-## Phase 1 — FIND
-- [ ] Curated Semgrep PHP rules for SQLi, XSS, CMDi, upload, LFI
-- [ ] tree-sitter-php parsing + function-level slicing
-- [ ] LLM review layer (logic flaws: auth bypass, IDOR) + confidence scoring
-- [ ] Dedup/merge of deterministic + LLM findings
-- [ ] Reports: terminal, JSON, SARIF
+## Phase 1 — FIND ✅ target: FIND stage complete
+- [x] Curated Semgrep PHP rules for SQLi, XSS, CMDi, upload, LFI (`rules/php/` — 6 rules across the 5 classes)
+- [x] tree-sitter-php parsing + function-level slicing (`scanner/slicer.py`)
+- [x] LLM review layer (logic flaws: auth bypass, IDOR) + confidence scoring (`scanner/llm_review.py`)
+- [x] Dedup/merge of deterministic + LLM findings (`scanner/merge.py`)
+- [x] Reports: terminal, JSON, SARIF 2.1.0 (`output/sarif.py`) · `phalanx bench` + `challenges/` set
 **Exit test:** flags all vulns in the challenge set; baseline precision measured vs Semgrep-only.
+**Status: EXIT TEST PASSED (2026-10-23).** `phalanx bench challenges` → **10/10 vulns flagged, 0 FP, 0 FN (precision 100% / recall 100%)**; semgrep-only baseline scored the same on this set (LLM review wired end-to-end but inactive without API key credits). `phalanx scan lab --format sarif` emits valid SARIF 2.1.0. 89/96 tests green (7 skip = Docker daemon not running; those passed in Phase 0), lint clean. Awaiting review sign-off to tag `phase-1-complete`.
 
 ## Phase 2 — PROVE
 - [ ] Safe PoC exploit generation (read-a-canary / extract-a-marker class only)

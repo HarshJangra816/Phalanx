@@ -1,0 +1,26 @@
+rules:
+  - id: php.upload.client-filename-dest
+    mode: taint
+    message: >
+      Uploaded file is stored under its client-supplied filename ($_FILES
+      ['name']). The attacker controls the destination name and extension.
+      Rename the file server-side and allowlist its extension/MIME type.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      vuln_class: upload
+      cwe: "CWE-434: Unrestricted Upload of File with Dangerous Type"
+      owasp: A04:2021 - Insecure Design
+      confidence: HIGH
+    pattern-sources:
+      - pattern: $_FILES[$F][...]
+      - pattern: $FILES['name']
+      - pattern: $FILES[...]['name']
+    pattern-sinks:
+      - patterns:
+          - pattern: move_uploaded_file($TMP, $DEST)
+          - focus-metavariable: $DEST
+    pattern-sanitizers:
+      - pattern: basename(...)
+      - pattern: intval(...)
+      - pattern: preg_replace(...)

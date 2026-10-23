@@ -1,0 +1,64 @@
+# Two rules instead of one: a single mega-rule with function-call AND
+# method-call sinks can trigger pathological taint-analysis times on some
+# inputs (observed >140s; split rules stay <7s). Keep each rule lean.
+rules:
+  - id: php.sqli.user-input-to-query
+    mode: taint
+    message: >
+      User-controlled input reaches a SQL query string without parameterization.
+      Use prepared statements (PDO::prepare + bindParam/execute, or mysqli
+      prepared statements) instead of concatenation/interpolation.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      vuln_class: sqli
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp: A03:2021 - Injection
+      confidence: HIGH
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+    pattern-sinks:
+      - pattern: mysqli_query(...)
+      - pattern: mysqli_real_query(...)
+      - pattern: mysql_query(...)
+      - pattern: pg_query(...)
+      - pattern: pg_send_query(...)
+    pattern-sanitizers:
+      - pattern: intval(...)
+      - pattern: floatval(...)
+      - pattern: (int) $X
+      - pattern: (float) $X
+      - pattern: mysqli_real_escape_string(...)
+      - pattern: pg_escape_string(...)
+
+  - id: php.sqli.oop-user-input-to-query
+    mode: taint
+    message: >
+      User-controlled input reaches a SQL query executed through a database
+      object ($db->query / $db->exec). Use parameterized queries instead of
+      concatenation/interpolation.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      vuln_class: sqli
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp: A03:2021 - Injection
+      confidence: HIGH
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+    pattern-sinks:
+      - pattern: $DB->query(...)
+      - pattern: $DB->exec(...)
+    pattern-sanitizers:
+      - pattern: intval(...)
+      - pattern: floatval(...)
+      - pattern: (int) $X
+      - pattern: (float) $X

@@ -1,0 +1,29 @@
+rules:
+  - id: php.lfi.user-input-to-include
+    mode: taint
+    message: >
+      User-controlled input reaches an include/require path (local file
+      inclusion / path traversal). Map requested pages to a fixed allowlist;
+      never build filesystem paths from raw request input.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      vuln_class: lfi
+      cwe: "CWE-22: Path Traversal / CWE-98: Remote File Inclusion"
+      owasp: A01:2021 - Broken Access Control
+      confidence: HIGH
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+    pattern-sinks:
+      - pattern-either:
+          - pattern: include $PATH
+          - pattern: include_once $PATH
+          - pattern: require $PATH
+          - pattern: require_once $PATH
+    pattern-sanitizers:
+      - pattern: basename(...)
+      - pattern: intval(...)
+      - pattern: realpath(...)
