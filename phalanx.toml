@@ -1,0 +1,23 @@
+# Phalanx configuration (all values optional; shown are the defaults)
+
+[llm]
+provider = "anthropic"          # anthropic | openai | mock
+max_tokens = 4096
+temperature = 0.0
+
+[llm.models]
+triage = "claude-haiku-4-5"     # cheap model: triage hypotheses
+fix = "claude-sonnet-4-5"       # strong model: generate patches
+
+[sandbox]
+enabled = true
+image = "php:8.2-cli-alpine"
+memory = "256m"
+cpus = 1.0
+timeout_seconds = 60
+
+[budget]
+max_tokens = 200000             # hard per-run token cap
+
+[audit]
+dir = ".phalanx"                # append-only JSONL audit logs

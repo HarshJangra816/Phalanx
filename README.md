@@ -58,6 +58,27 @@ Most files **never touch an LLM**. The deterministic layer does the bulk work; a
 - Function-level slicing — only the vulnerable function is sent, never whole files
 - `--budget N` hard token cap per run
 
+## Quickstart (Phase 0 preview)
+
+```powershell
+# install (sandbox extra adds the Docker SDK)
+pip install -e ".[sandbox]"
+
+# environment check
+phalanx doctor
+
+# ask the agent about a PHP file (uses ANTHROPIC_API_KEY; offline mock without it)
+phalanx ask lab/public/index.php "what vulnerabilities does this file contain?" --no-sandbox
+
+# prove the sandbox has no outbound network (Phase 0 exit test)
+phalanx sandbox check --project lab
+
+# deterministic scan (Phase 1 ships the rules)
+phalanx scan lab
+```
+
+Requires Python 3.11+. Docker Desktop is needed only for `sandbox` commands and PoC execution.
+
 ## Roadmap
 
 - [ ] **Phase 0** — Foundation: scaffold, Docker sandbox, agent tool-loop
@@ -67,21 +88,21 @@ Most files **never touch an LLM**. The deterministic layer does the bulk work; a
 - [ ] **Phase 4** — Distribution: CLI polish → GitHub Action → Web dashboard
 - [ ] **Phase 5** — Validation: real WP plugin CVEs, public challenge set, benchmark
 
-See [ROADMAP.md](ROADMAP.md) for exit criteria per phase.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for exit criteria per phase.
 
 ## Documentation
 
 | File | Purpose |
 |---|---|
-| [PRD.md](PRD.md) | Product requirements — problem, users, features, metrics |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, components, tech stack, data flow |
-| [ROADMAP.md](ROADMAP.md) | Phased build plan with exit tests |
-| [SAFETY.md](SAFETY.md) | Non-negotiable guardrails (defensive-only tool) |
-| [MEMORY.md](MEMORY.md) | Persistent project context for AI-assisted development |
+| [docs/PRD.md](docs/PRD.md) | Product requirements — problem, users, features, metrics |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, components, tech stack, data flow |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Phased build plan with exit tests |
+| [docs/SAFETY.md](docs/SAFETY.md) | Non-negotiable guardrails (defensive-only tool) |
+| [docs/MEMORY.md](docs/MEMORY.md) | Persistent project context for AI-assisted development |
 
 ## Status
 
-🚧 **Phase 0 — in development.** Not yet usable.
+🚧 **Phase 0 — code complete, exit test pending.** Package, CLI (`ask|scan|fix|sandbox|doctor`), Docker sandbox, agent tool-loop, budget/audit all built (45+ tests green). Awaiting sandbox network-isolation proof on a Docker host before the `phase-0-complete` tag. Not yet usable for real scanning — Phase 1 ships the rules.
 
 ## License
 

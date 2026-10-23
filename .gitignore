@@ -24,10 +24,11 @@ htmlcov/
 .cache/
 
 # Phalanx runtime artifacts
+.phalanx/
 *.jsonl.audit
-sandbox/
-runs/
-out/
+/sandbox/
+/runs/
+/out/
 *.sarif
 !tests/fixtures/**/*.sarif
 

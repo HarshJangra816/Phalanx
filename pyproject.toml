@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "phalanx"
+version = "0.1.0"
+description = "AI security engineer for PHP — finds, proves, fixes, and verifies vulnerabilities at machine speed."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Phalanx" }]
+keywords = ["security", "sast", "php", "vulnerabilities", "ai-agent", "semgrep"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+# Zero required runtime deps: stdlib-only core. Optional extras below.
+dependencies = []
+
+[project.optional-dependencies]
+sandbox = ["docker>=7.0"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+phalanx = "phalanx.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/harsh-bhalodiya/phalanx"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/phalanx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
