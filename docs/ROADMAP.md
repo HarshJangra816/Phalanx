@@ -13,7 +13,7 @@
 - [x] Audit logger (append-only JSONL) + token budget meter
 - [x] Docs: README, PRD, ARCHITECTURE, ROADMAP, SAFETY, MEMORY
 **Exit test:** agent can read a PHP file in the sandbox and answer questions about it; sandbox proves network-isolated.
-**Status:** code complete; 43 unit tests pass (8 sandbox tests skip without Docker). Sandbox runtime proof pending a Docker host (`phalanx sandbox check --project lab`).
+**Status: EXIT TEST PASSED (2026-10-23).** `phalanx sandbox check --project lab` → ✔ SANDBOX ISOLATED; agent Q&A ran with full sandbox lifecycle (create → run → destroy, audit trail verified); 52/53 tests pass (1 skip = semgrep binary, ships Phase 1). Live Claude call pending Anthropic account credits. Awaiting sign-off to tag `phase-0-complete`.
 
 ## Phase 1 — FIND
 - [ ] Curated Semgrep PHP rules for SQLi, XSS, CMDi, upload, LFI

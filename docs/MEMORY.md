@@ -41,10 +41,16 @@ FIND (Semgrep + tree-sitter, free) → PROVE (sandboxed safe PoC → CONFIRMED)
 
 ## Current status
 
-- **Current phase:** Phase 0 — Foundation (code complete, exit test partially verified)
-- **Phase 0 progress:** scaffold + CLI + sandbox + agent loop + budget/audit all built (43 tests green, lint clean). Agent loop verified live offline (mock provider); sandbox runtime proof pending a Docker host — this machine has no Docker.
-- **Last completed phase:** none yet (Phase 0 awaiting Docker-host exit test)
-- **Next action:** (1) on a Docker host: `pip install -e ".[sandbox]"` then `phalanx sandbox check --project lab` to prove network isolation and tag `phase-0-complete`; (2) start Phase 1 — curated Semgrep PHP rules in `rules/`
+- **Current phase:** Phase 0 — Foundation (exit test PASSED, awaiting sign-off to tag `phase-0-complete`)
+- **Phase 0 progress:** scaffold + CLI + sandbox + agent loop + budget/audit built; 52/53 tests green (1 skip = semgrep, Phase 1); lint clean; sandbox network isolation proven on Docker host; agent Q&A verified with full sandbox lifecycle (mock provider — live Anthropic call pending account credits)
+- **Last completed phase:** none yet (Phase 0 exit test passed; tag pending user sign-off)
+- **Next action:** (1) sign-off → tag `phase-0-complete` + push; (2) start Phase 1 — curated Semgrep PHP rules in `rules/`
+
+### Machine environment notes (2026-10-23)
+
+- Docker Desktop is installed at `%LOCALAPPDATA%\Programs\DockerDesktop` (user location, not Program Files).
+- First Docker install crashed WSL bootstrap (missing `componentsVersion.json`) + black-screened the laptop (uncapped WSL2 RAM on a 16 GB machine). Fixed by: `%USERPROFILE%\.wslconfig` with `memory=6GB`, `wsl --unregister docker-desktop`, Docker Desktop restart. Engine: Docker 29.9.2, WSL 3.0.3.0.
+- `.gitignore` previously had `sandbox/` (unanchored) — would have ignored `src/phalanx/sandbox/`. Now root-anchored `/sandbox/`.
 
 ### Phase 0 build notes (2026-10-23)
 
